@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>参加フォーム</title>
+<script type="module" src="firebase.js"></script>
+
+<style>
+form {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 400px;
+    margin: auto;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+label {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+}
+
+button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    background: #0077cc;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+button:hover {
+    background: #005fa3;
+}
+
+@media (max-width: 600px) {
+    form { padding: 15px; }
+    input, select { font-size: 15px; }
+    button { font-size: 15px; }
+}
+</style>
+</head>
+<body>
+
+<h2 style="text-align:center;">参加フォーム</h2>
+
+<form id="voteForm">
+    <label for="kisei">期生</label>
+    <input id="kisei" name="kisei" type="number" autocomplete="off" required>
+
+    <label for="name">氏名</label>
+    <input id="name" name="name" type="text" autocomplete="name" required>
+
+    <label for="status">参加可否</label>
+    <select id="status" name="status" required>
+        <option value="">選択してください</option>
+        <option value="参加">参加</option>
+        <option value="不参加">不参加</option>
+        <option value="未定">未定</option>
+    </select>
+
+    <label for="comment">コメント</label>
+    <input id="comment" name="comment" type="text" autocomplete="off">
+
+    <button type="submit">送信</button>
+</form>
+
+<script type="module">
+import { db, collection, addDoc } from "./firebase.js";
+
+document.getElementById("voteForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const data = {
+        kisei: Number(document.getElementById("kisei").value),
+        name: document.getElementById("name").value,
+        status: document.getElementById("status").value,
+        comment: document.getElementById("comment").value,
+        time: new Date().toLocaleString("ja-JP")
+    };
+
+    await addDoc(collection(db, "votes"), data);
+    alert("送信しました！");
+    e.target.reset();
+});
+</script>
+
+</body>
+</html>
