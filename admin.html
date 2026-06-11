@@ -3,27 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>投票一覧（管理者用）</title>
-<script type="module" src="firebase.js"></script>
+<title>管理画面</title>
 
 <style>
-body { font-family: sans-serif; background: #eef7ff; padding: 20px; }
-
-.table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+body {
+    font-family: sans-serif;
+    background: #f4faff;
+    padding: 20px;
 }
 
+/* タイトル */
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* テーブル基本 */
 table {
     width: 100%;
     border-collapse: collapse;
-    background: white;
-    min-width: 600px;
+    margin-top: 20px;
 }
 
 th, td {
-    padding: 10px;
-    border-bottom: 1px solid #ccc;
+    border: 1px solid #ccc;
+    padding: 12px;
     text-align: left;
 }
 
@@ -32,95 +36,116 @@ th {
     color: white;
 }
 
+/* ボタン */
 button {
-    padding: 5px 10px;
-    background: #d9534f;
+    padding: 10px 16px;
+    background: #0077cc;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 5px 0;
 }
 
-button:hover { background: #c9302c; }
+button:hover {
+    background: #005fa3;
+}
 
+/* スマホ対応 */
 @media (max-width: 600px) {
-    body { padding: 10px; }
-    th, td { padding: 6px; font-size: 14px; }
-    button { padding: 4px 8px; font-size: 13px; }
+    body {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 20px;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        font-size: 14px;
+    }
+
+    th, td {
+        padding: 8px;
+    }
+
+    button {
+        width: 100%;
+        font-size: 15px;
+        padding: 12px;
+    }
 }
 </style>
+
+<!-- Firebase 読み込み -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCqYx8Q6j0m7Y9Y6Z6Z6Z6Z6Z6Z6Z6Z6",
+    authDomain: "yacht-vote.firebaseapp.com",
+    projectId: "yacht-vote",
+    storageBucket: "yacht-vote.appspot.com",
+    messagingSenderId: "1234567890",
+    appId: "1:1234567890:web:abcdef123456"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* データ読み込み */
+async function loadData() {
+    const tableBody = document.getElementById("data");
+    tableBody.innerHTML = "";
+
+    const querySnapshot = await getDocs(collection(db, "votes"));
+    querySnapshot.forEach((docSnap) => {
+        const d = docSnap.data();
+
+        const row = `
+            <tr>
+                <td>${d.year}</td>
+                <td>${d.name}</td>
+                <td>${d.status}</td>
+                <td>
+                    <button onclick="deleteData('${docSnap.id}')">削除</button>
+                </td>
+            </tr>
+        `;
+        tableBody.innerHTML += row;
+    });
+}
+
+/* 削除 */
+async function deleteData(id) {
+    await deleteDoc(doc(db, "votes", id));
+    alert("削除しました");
+    loadData();
+}
+
+window.onload = loadData;
+</script>
+
 </head>
 <body>
 
-<h2>投票一覧（管理者用）</h2>
+<h1>管理画面</h1>
 
-<h3>集計</h3>
-<div id="count-area">
-    <p>参加：<span id="count-join">0</span> 人</p>
-    <p>不参加：<span id="count-no">0</span> 人</p>
-    <p>未定：<span id="count-maybe">0</span> 人</p>
-    <p>合計：<span id="count-total">0</span> 人</p>
-</div>
-
-<div class="table-wrap">
 <table>
     <thead>
         <tr>
-            <th>期生</th>
-            <th>氏名</th>
-            <th>参加可否</th>
-            <th>コメント</th>
-            <th>削除</th>
+            <th>卒業年</th>
+            <th>名前</th>
+            <th>参加状況</th>
+            <th>操作</th>
         </tr>
     </thead>
-    <tbody id="list"></tbody>
+    <tbody id="data"></tbody>
 </table>
-</div>
-
-<script type="module">
-import { db, collection, onSnapshot, deleteDoc, doc, query, orderBy } from "./firebase.js";
-
-const q = query(
-    collection(db, "votes"),
-    orderBy("kisei", "asc")   // ← 期生昇順
-);
-
-onSnapshot(q, (snapshot) => {
-    const list = document.getElementById("list");
-    list.innerHTML = "";
-
-    let join = 0, no = 0, maybe = 0;
-
-    snapshot.forEach((d) => {
-        const data = d.data();
-        const id = d.id;
-
-        list.innerHTML += `
-            <tr>
-                <td>${data.kisei}</td>
-                <td>${data.name}</td>
-                <td>${data.status}</td>
-                <td>${data.comment || ""}</td>
-                <td><button onclick="deleteVote('${id}')">削除</button></td>
-            </tr>
-        `;
-
-        if (data.status === "参加") join++;
-        else if (data.status === "不参加") no++;
-        else if (data.status === "未定") maybe++;
-    });
-
-    document.getElementById("count-join").textContent = join;
-    document.getElementById("count-no").textContent = no;
-    document.getElementById("count-maybe").textContent = maybe;
-    document.getElementById("count-total").textContent = join + no + maybe;
-});
-
-window.deleteVote = async function(id) {
-    if (!confirm("本当に削除しますか？")) return;
-    await deleteDoc(doc(db, "votes", id));
-    alert("削除しました！");
-};
-</script>
 
 </body>
 </html>
