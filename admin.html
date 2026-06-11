@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>投票一覧（管理者用）</title>
+<script type="module" src="firebase.js"></script>
+
+<style>
+body { font-family: sans-serif; background: #eef7ff; padding: 20px; }
+
+.table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    min-width: 600px;
+}
+
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+    text-align: left;
+}
+
+th {
+    background: #0077cc;
+    color: white;
+}
+
+button {
+    padding: 5px 10px;
+    background: #d9534f;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+button:hover { background: #c9302c; }
+
+@media (max-width: 600px) {
+    body { padding: 10px; }
+    th, td { padding: 6px; font-size: 14px; }
+    button { padding: 4px 8px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<h2>投票一覧（管理者用）</h2>
+
+<h3>集計</h3>
+<div id="count-area">
+    <p>参加：<span id="count-join">0</span> 人</p>
+    <p>不参加：<span id="count-no">0</span> 人</p>
+    <p>未定：<span id="count-maybe">0</span> 人</p>
+    <p>合計：<span id="count-total">0</span> 人</p>
+</div>
+
+<div class="table-wrap">
+<table>
+    <thead>
+        <tr>
+            <th>期生</th>
+            <th>氏名</th>
+            <th>参加可否</th>
+            <th>コメント</th>
+            <th>削除</th>
+        </tr>
+    </thead>
+    <tbody id="list"></tbody>
+</table>
+</div>
+
+<script type="module">
+import { db, collection, onSnapshot, deleteDoc, doc, query, orderBy } from "./firebase.js";
+
+const q = query(
+    collection(db, "votes"),
+    orderBy("kisei", "asc")   // ← 期生昇順
+);
+
+onSnapshot(q, (snapshot) => {
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    let join = 0, no = 0, maybe = 0;
+
+    snapshot.forEach((d) => {
+        const data = d.data();
+        const id = d.id;
+
+        list.innerHTML += `
+            <tr>
+                <td>${data.kisei}</td>
+                <td>${data.name}</td>
+                <td>${data.status}</td>
+                <td>${data.comment || ""}</td>
+                <td><button onclick="deleteVote('${id}')">削除</button></td>
+            </tr>
+        `;
+
+        if (data.status === "参加") join++;
+        else if (data.status === "不参加") no++;
+        else if (data.status === "未定") maybe++;
+    });
+
+    document.getElementById("count-join").textContent = join;
+    document.getElementById("count-no").textContent = no;
+    document.getElementById("count-maybe").textContent = maybe;
+    document.getElementById("count-total").textContent = join + no + maybe;
+});
+
+window.deleteVote = async function(id) {
+    if (!confirm("本当に削除しますか？")) return;
+    await deleteDoc(doc(db, "votes", id));
+    alert("削除しました！");
+};
+</script>
+
+</body>
+</html>
